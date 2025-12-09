@@ -139,7 +139,7 @@ def add_book(book: schemas.BookCreate, db: Session = Depends(get_db)):
 
 
 # PUT Book created by current user
-@app.put("/books/{book_id}")
+@app.put("/profile/books/{book_id}")
 def update_book(book_id: int, updated_book: schemas.BookCreate,
                 user = Depends(get_current_user), db: Session = Depends(get_db)):
     
@@ -159,7 +159,7 @@ def update_book(book_id: int, updated_book: schemas.BookCreate,
 
 
 # DELETE Book created by current user
-@app.delete("/books/{book_id}")
+@app.delete("/profile/books/{book_id}")
 def delete_book(book_id: int, user = Depends(get_current_user), db: Session = Depends(get_db)):
     db_book = db.query(models.Book).filter(models.Book.id == book_id, 
                                            models.Book.creator_id == user.id).first()
