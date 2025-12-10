@@ -3,7 +3,8 @@ import {
     View,
     TextInput,
     Button,
-    Alert
+    Alert,
+    StyleSheet
 } from 'react-native';
 import api from '../api';
 
@@ -23,18 +24,25 @@ export default function SignUpScreen({ navigation }) {
 
     return (
         <View>
-            <TextInput styles ={styles.TextInput} 
-                placeholder="Username" 
-                onChangeText={setUsername} 
-            />
+            <View style ={styles.Input}>
+                <TextInput 
+                    placeholder="Username" 
+                    onChangeText={setUsername} 
+                />
+            </View>
 
-            <TextInput styles ={styles.TextInput}
-                placeholder="Password"
-                secureTextEntry
-                onChangeText={setPassword}
-            />
-            <Button styles ={styles.Button}
-            title="Sign Up" onPress={signUp} />
+            <View style ={styles.Input}>
+                <TextInput 
+                    placeholder="Password"
+                    secureTextEntry
+                    onChangeText={setPassword}
+                />
+            </View>
+
+            <View style ={styles.Button} >
+                <Button 
+                title="Sign Up" onPress={signUp} />
+            </View>
         </View>
     );
 }

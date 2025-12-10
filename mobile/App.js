@@ -8,20 +8,13 @@ import LoginScreen from './screens/LoginScreen';
 import SignUpScreen from './screens/SignUpScreen';
 import HomeScreen from './screens/HomeScreen';
 import WelcomeScreen from './screens/WelcomeScreen';
+import PostScreen from './screens/PostScreen';
+import ProfileScreen from './screens/ProfileScreen';
 
 
 enableScreens();
 const Stack = createNativeStackNavigator();
 
-function AuthChoiceScreen({ navigation }) {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', padding: 16 }}>
-      <Button title="Login" onPress={() => navigation.navigate('Login')} />
-      <Button title="Sign Up" onPress={() => navigation.navigate('SignUp')} />
-      <Button title="Continue to Dashboard" onPress={() => navigation.navigate('Dashboard')} />
-    </View>
-  );
-}
 
 export default function App() {
     return (
@@ -31,6 +24,9 @@ export default function App() {
                 <Stack.Screen name="Login" component={LoginScreen} />
                 <Stack.Screen name="SignUp" component={SignUpScreen} />
                 <Stack.Screen name="Home" component={HomeScreen} />
+                <Stack.Screen name="Post" component={PostScreen} />
+                <Stack.Screen name="Profile" component={ProfileScreen} />
+
             </Stack.Navigator>
         </NavigationContainer>
     );

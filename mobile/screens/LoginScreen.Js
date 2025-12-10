@@ -3,7 +3,8 @@ import {
     View,
     TextInput,
     Button,
-    Alert
+    Alert,
+    StyleSheet
 } from 'react-native';
 import api from '../api';
 
@@ -16,7 +17,7 @@ export default function LoginScreen({ navigation }) {
         try {
             const res = await api.post('/login', { username, password });
             api.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
-            navigation.navigate('Home');
+            navigation.replace('Home');
         } catch (error) {
             Alert.alert('Login Failed');
         }

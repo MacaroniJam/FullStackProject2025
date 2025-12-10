@@ -1,19 +1,28 @@
 import React, { useState, useEffect} from 'react';
 import {
     View,
+    Text,
     TextInput,
     Button,
-    Alert
+    Alert,
+    StyleSheet
 } from 'react-native';
 import api from '../api';
-import { FlatList } from 'react-native/types_generated/index';
+import { FlatList } from 'react-native';
+import CheckBox from '@react-native-community/checkbox';
 
 
 /* DESIGN IDEA FOR HOMESCREEN
-- Top Section (Stays on screen while scrolling): 
+- Top Section Header: 
     - Profile button top right corner
     - Welcome message with username
-    - Filter/Search bar
+    - Filter
+        -checkbox for each star rating (1-5)
+            - When checked, only show books with that rating.
+              for example, if 4 is checked, only show books with average rating >=4 and <5
+              if 4 and 5 are checked, show books with average rating >=4 and <=5
+              if all is checked, show all books
+
 
 - Middle Section:
     - List of books displayed in a scrollable view
@@ -21,19 +30,29 @@ import { FlatList } from 'react-native/types_generated/index';
         show "No rating yet"
     - Each book item is clickable to view more details
 
-- Bottom Section:
+- Bottom Section Footer:
     - Plus Button to post a review
 */
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }) {
     const [user, setUser] = useState(null); // Get current user info
     const [books, setBooks] = useState([]); // Get all books from backend
+    const [filterRatings, setFilterRatings] = useState({
+        all: true,
+        1: true,
+        2: true,
+        3: true,
+        4: true,
+        5: true,
+    }); // Star rating filters
+
 
     const fetchUser = async () => {
         try {
             const res = await api.get('/profile');
             setUser(res.data);
         } catch (error) {
-            Alert.alert('Failed to fetch user info');
+            Alert.alert('Failed to fetch user info', error.response?.data?.detail ?? '');
+            console.log('Profile error:', error.response?.status, error.response?.data);
         }
     };
 
@@ -42,9 +61,34 @@ export default function HomeScreen() {
                 const res = await api.get('/books');
                 setBooks(res.data);
             } catch (error) {
-                Alert.alert('Failed to fetch books');
+                console.log('Fetch books error:', error.response?.status, error.response?.data);
+                
             }
     };
+
+
+    const handleFilterChange = (rating) => {
+        const updatedFilters = { ...filterRatings };
+
+        if (rating === 'all') {
+            const newValue = !updatedFilters.all;
+            Object.keys(updatedFilters).forEach(key => {
+                updatedFilters[key] = newValue;
+            });
+        } else {
+            updatedFilters[rating] = !updatedFilters[rating];
+            updatedFilters.all = false; // Uncheck "all" if any specific rating is changed
+        }
+        setFilterRatings(updatedFilters);
+    };
+
+    const filteredBooks = books.filter(book => {
+        if (filterRatings.all) {
+            return true; // Show all books
+        }
+        const avgRating = Math.floor(book.Average_rating); // Round down to nearest integer
+        return filterRatings[avgRating];
+    });
 
 
     useEffect(() => {
@@ -56,37 +100,62 @@ export default function HomeScreen() {
         <View style={styles.container}>
             <View style={styles.header}>
 
-                <Text> Welcome {user.username} </Text>
-                <Button title="Profile" onPress={() => navigation.navigate('Profile Screen')} />
+                <Text> Welcome {user?.username ?? ''} </Text>
+                <Button title="Profile" onPress={() => navigation.navigate('Profile')} />
 
             </View>
+
+            <View style={styles.filter}>
+                <Text>Filter by Average Rating:</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    {['all', 1, 2, 3, 4, 5].map((rating) => (
+                        <View key={rating} style={{ flexDirection: 'row', alignItems: 'center', marginRight: 8 }}>
+                        <CheckBox
+                            value={filterRatings[rating]}
+                            onValueChange={() => handleFilterChange(rating)}
+                        />
+                        <Text>{rating === 'all' ? 'All' : `${rating}⭐`}</Text>
+                        </View>
+                    ))}
+                </View>
+                
+            </View>
             
-            <FlatList>
-                data={books}
+            <FlatList
+                contentContainerStyle={styles.List}
+                data={filteredBooks}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (
-                    <View>
+                    <View style={styles.row}>
                         <View style={styles.leftAlign}>
-                            <Text>{item.title} </Text>
-                            <Text>By:{item.author} Published: {item.published_date}</Text>
+                            <Text style={{ fontSize: 26, fontWeight:"bold" ,marginBottom: 8 }}>
+                                {item.title} 
+                            </Text>
+
+                            <Text style={{ fontSize: 16, fontWeight: 'bold' ,marginBottom: 8 }}>
+                                By: <Text style={{fontStyle: 'italic'}}>{item.author}</Text>
+                            </Text>
+                            <Text>Published on: {item.Date_published}</Text>
                         </View>
                         <View style={styles.rightAlignCenter}>
-                            {item.average_rating ? (
-                                <Text> Average Rating: {item.average_rating} </Text>
+                            {item.Average_rating != null ? (
+                                <Text style={{ fontSize: 26, fontWeight:"bold"}}>
+                                    {item.Average_rating}⭐
+                                    </Text>
                             ) : (
-                                <Text> No ratings yet </Text>
+                                <Text>No ratings yet</Text>
                             )}
                         </View>
                     </View>
 
-                    
                 )}
+            />
 
-            </FlatList>
+            <View style={styles.Footer}>
+                <Button title="Post Review" onPress={() => navigation.navigate('Post')} />
+            </View>
 
         </View>
-
-        
     );
 
 
@@ -96,17 +165,40 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        flexDirection: 'column',
         justifyContent: 'center',
-        alignItems: 'center',
-        padding: 16,
     },
     header: {
+        position: 'absolute', 
+        top: 0,             
+        left: 0,             
+        right: 0,             
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        padding: 10,
+        backgroundColor: 'white',
+        borderBottomWidth: 1,
+        borderColor: '#000000'
+
+    },
+    filter :{
+        marginTop: 60,
+        marginBottom: 10,
+        paddingHorizontal: 10,
+    },
+    List:{
+        flexGrow: 1,
+        paddingBottom: 60,
         width: '100%',
-        marginBottom: 16,
+    },
+    row: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 12,
+        borderTopWidth: 1,
+        borderBottomWidth: 1,
+        borderColor: '#000000',
     },
     leftAlign: {
         flex: 1,
@@ -119,5 +211,16 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'flex-end',
+    },
+    Footer: {
+        position: 'absolute', 
+        bottom: 0, 
+        left: 0, 
+        right: 0, 
+        padding: 10, 
+        backgroundColor: 'white',
+        borderTopWidth: 1,
+        borderColor: '#000000',
+
     }
 });

@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from datetime import date, time
 
 # -- User Schemas --
 # User Creation Schema
@@ -21,11 +22,11 @@ class UserOut(BaseModel):
 # Book Creation
 # Used when a user adds a new book
 class BookCreate(BaseModel):
-    creator_id: int
     title: str
     author: str
     Date_published: str
     Description: str | None = None
+
 
 # Book Output Schema
 # Used when displaying book details
@@ -33,9 +34,9 @@ class BookOut(BaseModel):
     id: int
     title: str
     author: str
-    Date_published: str
+    Date_published: date
     Description: str | None = None
-    Average_rating: int | None = None
+    Average_rating: float | None = None
 
     class Config:
         from_attributes = True
@@ -45,8 +46,8 @@ class CompressedBookOut(BaseModel):
     id: int
     title: str
     author: str
-    Date_published: str
-    Average_rating: int | None = None
+    Date_published: date
+    Average_rating: float | None = None
 
     class Config:
         from_attributes = True
@@ -64,8 +65,8 @@ class ReviewOut(BaseModel):
     id: int
     user_id: int
     book_id: int
-    date: str
-    time: str
+    date: date
+    time: time
     content: str
     rating: int
 
@@ -75,12 +76,13 @@ class ReviewOut(BaseModel):
 # Used in showing reviews in user profile
 class ProfileReviewOut(BaseModel):
     id: int
-    book_id: int
-    date: str
-    time: str
+    book: CompressedBookOut
+    date: date
+    time: time
     content: str
     rating: int
 
     class Config:
         from_attributes = True
+
 

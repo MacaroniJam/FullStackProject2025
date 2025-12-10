@@ -3,12 +3,12 @@ import {
     View,
     TextInput,
     Button,
-    Alert
+    Alert,
+    StyleSheet
 } from 'react-native';
 import api from '../api';
-import React from 'react';
-import { Text } from 'react-native/types_generated/index';
-import { StyleSheet } from 'react-native/types_generated/index';
+import { Text } from 'react-native';
+
 
 
 export default function WelcomeScreen({ navigation }) {
@@ -19,11 +19,13 @@ export default function WelcomeScreen({ navigation }) {
                 Welcome to the App!
             </Text>
 
-            <Button title="Login" style={styles.Button} 
+            <Button title="Login" 
             onPress={() => navigation.navigate('Login')} />
             
-            <Button title="Sign Up" style={styles.Button} 
-            onPress={() => navigation.navigate('SignUp')} />
+            <View style ={styles.Button}>
+                <Button title="Sign Up"
+                onPress={() => navigation.navigate('SignUp')} />
+            </View>
         </View>
     );
 
@@ -43,6 +45,6 @@ const styles = StyleSheet.create({
         fontweight: 'bold',
     },
     Button: {
-        marginTop: 10,
+        marginTop: 20,
     },
 });
