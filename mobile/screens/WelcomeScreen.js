@@ -16,13 +16,15 @@ export default function WelcomeScreen({ navigation }) {
     return (
         <View style={styles.container}>
             <Text style ={styles.Text}>
-                Welcome to the App!
+                Welcome to the Book Review App!
             </Text>
 
-            <Button title="Login" 
-            onPress={() => navigation.navigate('Login')} />
+            
             
             <View style ={styles.Button}>
+                <Button title="Login" 
+            onPress={() => navigation.navigate('Login')} />
+            
                 <Button title="Sign Up"
                 onPress={() => navigation.navigate('SignUp')} />
             </View>
@@ -46,5 +48,7 @@ const styles = StyleSheet.create({
     },
     Button: {
         marginTop: 20,
+        width: '100%',
+        gap: 20,
     },
 });

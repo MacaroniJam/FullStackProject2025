@@ -1,11 +1,13 @@
 import React, { useState, useEffect} from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
     View,
     Text,
     TextInput,
     Button,
     Alert,
-    StyleSheet
+    StyleSheet,
+    TouchableOpacity
 } from 'react-native';
 import api from '../api';
 import { FlatList } from 'react-native';
@@ -93,8 +95,14 @@ export default function HomeScreen({ navigation }) {
 
     useEffect(() => {
         fetchUser();
-        fetchBooks();
     }, []);
+
+    // Refresh books when returning to Home (e.g., after delete)
+    useFocusEffect(
+        React.useCallback(() => {
+            fetchBooks();
+        }, [])
+    );
 
     return (
         <View style={styles.container}>
@@ -126,7 +134,16 @@ export default function HomeScreen({ navigation }) {
                 data={filteredBooks}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (
-                    <View style={styles.row}>
+                    <TouchableOpacity
+                        onPress={() => {
+                            navigation.navigate('Book', { bookId: item.id });
+                        }}
+                        activeOpacity={0.7}
+                        style={[
+                            styles.row,
+                            { backgroundColor: '#eef6ff' }
+                        ]}
+                    >
                         <View style={styles.leftAlign}>
                             <Text style={{ fontSize: 26, fontWeight:"bold" ,marginBottom: 8 }}>
                                 {item.title} 
@@ -143,10 +160,10 @@ export default function HomeScreen({ navigation }) {
                                     {item.Average_rating}⭐
                                     </Text>
                             ) : (
-                                <Text>No ratings yet</Text>
+                                <Text style={{fontSize: 20}}>No ratings yet</Text>
                             )}
                         </View>
-                    </View>
+                    </TouchableOpacity>
 
                 )}
             />

@@ -24,14 +24,14 @@ export default function SignUpScreen({ navigation }) {
 
     return (
         <View>
-            <View style ={styles.Input}>
+            <View style ={styles.TextInput}>
                 <TextInput 
                     placeholder="Username" 
                     onChangeText={setUsername} 
                 />
             </View>
 
-            <View style ={styles.Input}>
+            <View style ={styles.TextInput}>
                 <TextInput 
                     placeholder="Password"
                     secureTextEntry

@@ -184,6 +184,8 @@ export default function PostScreen({ navigation }) {
                         value={newBookAuthor}
                         onChangeText={setNewBookAuthor}
                     />
+
+                    <Text>Publication Date:</Text>
                     <Calendar
                     style={styles.Calendar}
                         onDayPress={(day) => setNewBookDate(day.dateString)}
@@ -271,6 +273,7 @@ const styles = StyleSheet.create({
         width: 300,
         borderColor: 'gray',
         borderWidth: 1,
+        marginBottom: 12,
     },
 
     Calendar: {

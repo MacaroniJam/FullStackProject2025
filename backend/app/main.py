@@ -103,6 +103,33 @@ def update_user(updated_user: schemas.UserCreate, user = Depends(get_current_use
 @app.delete("/profile")
 def delete_user(user = Depends(get_current_user), db: Session = Depends(get_db)):
     db_user = db.query(models.User).filter(models.User.id == user.id).first()
+
+    # Archive and Delete all reviews made by user
+    user_reviews = db.query(models.Review).filter(models.Review.user_id == user.id).all()
+    for review in user_reviews:
+        archived_review = models.ReviewArchive(
+            user_id=review.user_id,
+            book_id=review.book_id,
+            content=review.content,
+            rating=review.rating
+        )
+        db.add(archived_review)
+        db.delete(review)
+
+    # Archive and Delete all books created by user
+    user_books = db.query(models.Book).filter(models.Book.creator_id == user.id).all()
+    for book in user_books:
+        archived_book = models.BookArchive(
+            creator_id=book.creator_id,
+            title=book.title,
+            author=book.author,
+            Date_published=book.Date_published,
+            Description=book.Description,
+            Average_rating=book.Average_rating
+        )
+        db.add(archived_book)
+        db.delete(book)
+
     db.delete(db_user)
     db.commit()
     return {"message": "User deleted"}
@@ -200,9 +227,10 @@ def delete_book(book_id: int, user = Depends(get_current_user), db: Session = De
 @app.get("/books/{book_id}/reviews", response_model=list[schemas.ReviewOut], 
          dependencies=[Depends(auth.verify_token)])
 def get_book_reviews(book_id: int, db: Session = Depends(get_db)):
-    reviews = db.query(models.Review).filter(models.Review.book_id == book_id).all()
-    if not reviews:
-        raise HTTPException(status_code=404, detail="No reviews found for this book")
+    reviews = (db.query(models.Review)
+               .options(joinedload(models.Review.user))
+               .filter(models.Review.book_id == book_id)
+               .all())
     return reviews
 
 # GET Reviews made by the current User

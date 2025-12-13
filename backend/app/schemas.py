@@ -32,6 +32,7 @@ class BookCreate(BaseModel):
 # Used when displaying book details
 class BookOut(BaseModel):
     id: int
+    creator_id: int
     title: str
     author: str
     Date_published: date
@@ -64,6 +65,7 @@ class ReviewCreate(BaseModel):
 class ReviewOut(BaseModel):
     id: int
     user_id: int
+    user: UserOut
     book_id: int
     date: date
     time: time

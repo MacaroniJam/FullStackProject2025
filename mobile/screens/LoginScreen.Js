@@ -25,18 +25,21 @@ export default function LoginScreen({ navigation }) {
 
     return (
         <View>
-            <TextInput styles ={styles.TextInput}
-                placeholder="Username"
-                value={username}
-                onChangeText={setUsername}
-            />
+            <View style ={styles.TextInput}>
+                <TextInput 
+                    placeholder="Username" 
+                    onChangeText={setUsername} 
+                />
+            </View>
 
-            <TextInput styles ={styles.TextInput}
-                placeholder="Password"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-            />
+            <View style ={styles.TextInput}>
+                <TextInput 
+                    placeholder="Password"
+                    secureTextEntry
+                    onChangeText={setPassword}
+                />
+            </View>
+            
 
             <Button title="Login" styles ={styles.Button}
             onPress={login} />
@@ -64,5 +67,6 @@ const styles = StyleSheet.create({
     },
     Button: {
         marginTop: 10,
+        
     },
 });

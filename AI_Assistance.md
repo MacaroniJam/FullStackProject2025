@@ -60,3 +60,12 @@ Prompt 7: How do i get the item book name and author if im using:
 
 Prompt 8: radiobuttons.map not a function
 
+
+Prompt 9: how to make a flatlist item selectable
+
+Prompt 10: How to navigate to a screen with a parameter
+
+Prompt 11: My content is not showing for Book screen
+
+
+Prompt 12: ToString error
