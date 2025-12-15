@@ -1,6 +1,6 @@
 import datetime
-from sqlalchemy import Column, Integer, String, Date, Time, ForeignKey
-from sqlalchemy.orm import Relationship
+from sqlalchemy import Column, Integer, String, Date, Time, ForeignKey, Float
+from sqlalchemy.orm import relationship
 from .database import Base
 
 # Standard User model, no admins
@@ -22,8 +22,21 @@ class Book(Base):
     author = Column(String, nullable=False)
     Date_published = Column(Date, nullable=False)
     Description = Column(String, nullable=True)
-    Average_rating = Column(Integer, nullable=True)
-    user = Relationship("User")
+    Average_rating = Column(Float, nullable=True)
+    user = relationship("User")
+
+class Review(Base):
+    __tablename__ = "reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id  = Column(Integer, ForeignKey('users.id'))
+    book_id = Column(Integer, ForeignKey('books.id'))
+    date = Column(Date, default = datetime.date.today)
+    time = Column(Time, default = datetime.datetime.now().strftime("%I:%M:%S %p"))
+    content = Column(String, nullable=False)
+    rating = Column(Integer, nullable=False)
+    user = relationship("User")
+    book = relationship("Book")
 
 class BookArchive(Base):
     __tablename__ = "book_archives"
@@ -36,21 +49,6 @@ class BookArchive(Base):
     Date_published = Column(Date, nullable=False)
     Description = Column(String, nullable=True)
     Average_rating = Column(Integer, nullable=True)
-
-
-
-class Review(Base):
-    __tablename__ = "reviews"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id  = Column(Integer, ForeignKey('users.id'))
-    book_id = Column(Integer, ForeignKey('books.id'))
-    date = Column(Date, default = datetime.date.today)
-    time = Column(Time, default = datetime.datetime.now().time)
-    content = Column(String, nullable=False)
-    rating = Column(Integer, nullable=False)
-    user = Relationship("User")
-    book = Relationship("Book")
 
 class ReviewArchive(Base):
     __tablename__ = "review_archives"

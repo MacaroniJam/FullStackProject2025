@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
 from . import models, schemas, auth
 from .database import SessionLocal, engine
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,12 +24,23 @@ def get_db():
     finally:
         db.close()
 
+# --- Helpers ---
+def recalculate_book_average(book_id: int, db: Session):
+    avg = db.query(func.avg(models.Review.rating)).filter(models.Review.book_id == book_id).scalar()
+    db_book = db.query(models.Book).filter(models.Book.id == book_id).first()
+    if db_book:
+        db_book.Average_rating = round(avg, 1) if avg is not None else None
+        db.commit()
+        db.refresh(db_book)
+
+
 # Dependency to get the current user from the JWT token
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")
-        user = db.query(models.User).filter(models.User.id == user_id).first()
+        # The token 'sub' currently stores the username (see /login below)
+        username = payload.get("sub")
+        user = db.query(models.User).filter(models.User.username == username).first()
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
         return user
@@ -91,6 +103,33 @@ def update_user(updated_user: schemas.UserCreate, user = Depends(get_current_use
 @app.delete("/profile")
 def delete_user(user = Depends(get_current_user), db: Session = Depends(get_db)):
     db_user = db.query(models.User).filter(models.User.id == user.id).first()
+
+    # Archive and Delete all reviews made by user
+    user_reviews = db.query(models.Review).filter(models.Review.user_id == user.id).all()
+    for review in user_reviews:
+        archived_review = models.ReviewArchive(
+            user_id=review.user_id,
+            book_id=review.book_id,
+            content=review.content,
+            rating=review.rating
+        )
+        db.add(archived_review)
+        db.delete(review)
+
+    # Archive and Delete all books created by user
+    user_books = db.query(models.Book).filter(models.Book.creator_id == user.id).all()
+    for book in user_books:
+        archived_book = models.BookArchive(
+            creator_id=book.creator_id,
+            title=book.title,
+            author=book.author,
+            Date_published=book.Date_published,
+            Description=book.Description,
+            Average_rating=book.Average_rating
+        )
+        db.add(archived_book)
+        db.delete(book)
+
     db.delete(db_user)
     db.commit()
     return {"message": "User deleted"}
@@ -123,10 +162,10 @@ def get_user_books(user = Depends(get_current_user), db: Session = Depends(get_d
     return books
 
 # POST Book
-@app.post("/books", dependencies=[Depends(auth.verify_token)])
-def add_book(book: schemas.BookCreate, db: Session = Depends(get_db)):
+@app.post("/books",  dependencies=[Depends(auth.verify_token)])
+def add_book(book: schemas.BookCreate, user = Depends(get_current_user), db: Session = Depends(get_db)):
     db_book = models.Book(
-        creator_id = book.creator_id,
+        creator_id=user.id,
         title=book.title,
         author=book.author,
         Date_published=book.Date_published,
@@ -135,11 +174,11 @@ def add_book(book: schemas.BookCreate, db: Session = Depends(get_db)):
     db.add(db_book)
     db.commit()
     db.refresh(db_book)
-    return {"message": "Book added", "book_id": db_book.id}
+    return {"message": "Book added", "id": db_book.id}
 
 
 # PUT Book created by current user
-@app.put("/books/{book_id}")
+@app.put("/profile/books/{book_id}")
 def update_book(book_id: int, updated_book: schemas.BookCreate,
                 user = Depends(get_current_user), db: Session = Depends(get_db)):
     
@@ -159,7 +198,7 @@ def update_book(book_id: int, updated_book: schemas.BookCreate,
 
 
 # DELETE Book created by current user
-@app.delete("/books/{book_id}")
+@app.delete("/profile/books/{book_id}")
 def delete_book(book_id: int, user = Depends(get_current_user), db: Session = Depends(get_db)):
     db_book = db.query(models.Book).filter(models.Book.id == book_id, 
                                            models.Book.creator_id == user.id).first()
@@ -188,15 +227,21 @@ def delete_book(book_id: int, user = Depends(get_current_user), db: Session = De
 @app.get("/books/{book_id}/reviews", response_model=list[schemas.ReviewOut], 
          dependencies=[Depends(auth.verify_token)])
 def get_book_reviews(book_id: int, db: Session = Depends(get_db)):
-    reviews = db.query(models.Review).filter(models.Review.book_id == book_id).all()
-    if not reviews:
-        raise HTTPException(status_code=404, detail="No reviews found for this book")
+    reviews = (db.query(models.Review)
+               .options(joinedload(models.Review.user))
+               .filter(models.Review.book_id == book_id)
+               .all())
     return reviews
 
 # GET Reviews made by the current User
 @app.get("/profile/reviews", response_model=list[schemas.ProfileReviewOut])
 def get_user_reviews(user = Depends(get_current_user), db: Session = Depends(get_db)):
-    reviews = db.query(models.Review).filter(models.Review.user_id == user.id).all()
+    reviews = (
+        db.query(models.Review)
+        .options(joinedload(models.Review.book))
+        .filter(models.Review.user_id == user.id)
+        .all()
+    )
     if not reviews:
         raise HTTPException(status_code=404, detail="No reviews found for this user")
     return reviews
@@ -213,7 +258,9 @@ def add_review(book_id: int, review: schemas.ReviewCreate, user = Depends(get_cu
     db.add(db_review)
     db.commit()
     db.refresh(db_review)
-    return {"message": "Review added", "review_id": db_review.id}
+    # Update average rating for the book
+    recalculate_book_average(book_id, db)
+    return {"message": "Review added", "id": db_review.id}
 
 # PUT Review by current User
 @app.put("/reviews/{review_id}")
@@ -230,6 +277,8 @@ def update_review(review_id: int, updated_review: schemas.ReviewCreate,
     
     db.commit()
     db.refresh(db_review)
+    # Update average rating after change
+    recalculate_book_average(db_review.book_id, db)
     return {"message": "Review updated"}
 
 # Delete Review by current User
@@ -251,6 +300,8 @@ def delete_review(review_id: int, user = Depends(get_current_user), db: Session 
     
     db.delete(db_review)
     db.commit()
+    # Update average rating after deletion
+    recalculate_book_average(archived_review.book_id, db)
     return {"message": "Review deleted and archived"}
 # ------------------------
 
