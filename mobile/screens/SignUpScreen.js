@@ -16,7 +16,7 @@ export default function SignUpScreen({ navigation }) {
         try {
             await api.post('/signup', { username, password });
             Alert.alert('User Created');
-            navigation.navigate('Login');
+            navigation.replace('Login');
         } catch {
             Alert.alert('Sign Up Failed');
         }

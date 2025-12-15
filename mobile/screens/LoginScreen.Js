@@ -16,7 +16,11 @@ export default function LoginScreen({ navigation }) {
     const login = async () => {
         try {
             const res = await api.post('/login', { username, password });
-            api.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
+            const accessToken = res?.data?.access_token;
+            if (!accessToken) {
+                throw new Error('No access_token in response');
+            }
+            api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
             navigation.replace('Home');
         } catch (error) {
             Alert.alert('Login Failed');

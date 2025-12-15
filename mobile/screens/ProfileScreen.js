@@ -11,6 +11,7 @@ import {
 import api from '../api';
 import { FlatList, Modal } from 'react-native';
 import RadioGroup from 'react-native-radio-buttons-group';
+import { useFocusEffect } from '@react-navigation/native';
 
 
 /* DESIGN IDEA FOR PROFILE SCREEN
@@ -98,7 +99,14 @@ export default function ProfileScreen({ navigation }) {
 
     const updateUser = async () => {
         try {
-            await api.put('/profile', { username, password });
+            const res = await api.put('/profile', { username, password });
+
+            // If backend returns new tokens, update Authorization header
+            const newAccess = res?.data?.access_token;
+            if (newAccess) {
+                api.defaults.headers.common['Authorization'] = `Bearer ${newAccess}`;
+            }
+
             Alert.alert('Profile updated successfully');
             fetchBooks();
             fetchReviews();
@@ -113,6 +121,13 @@ export default function ProfileScreen({ navigation }) {
         fetchBooks();
         fetchReviews();
     }, []);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            fetchBooks();
+            fetchReviews();
+        }, [])
+    );
     
     
 
@@ -196,12 +211,13 @@ export default function ProfileScreen({ navigation }) {
                                 </Text>
                                 
                             <Text style={{ fontSize: 15, fontStyle: 'italic' ,marginBottom: 8 }}>
-                                {new Date(item.date).toLocaleDateString()}{"   "}
-                                {new Date(`1970-01-01T${item.time}`).toLocaleTimeString([], {
-                                hour: 'numeric',
-                                minute: '2-digit',
-                                hour12: true,
-                            })} 
+                                {new Date(`${item.date}T${item.time}Z`).toLocaleDateString()} {"   "}
+                                {new Date(`${item.date}T${item.time}Z`).toLocaleTimeString([], {
+                                    timeZone: 'America/New_York',
+                                    hour: 'numeric',
+                                    minute: '2-digit',
+                                    hour12: true,
+                                })}
                             </Text>
 
                             <Text style={{ fontSize: 14 ,marginBottom: 8 }}>

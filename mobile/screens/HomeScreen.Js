@@ -95,11 +95,12 @@ export default function HomeScreen({ navigation }) {
 
     useEffect(() => {
         fetchUser();
+        fetchBooks();
     }, []);
-
-    // Refresh books when returning to Home (e.g., after delete)
+    
     useFocusEffect(
         React.useCallback(() => {
+            fetchUser();
             fetchBooks();
         }, [])
     );

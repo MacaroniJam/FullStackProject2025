@@ -13,6 +13,7 @@ import StarRating from 'react-native-star-rating-widget';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { FlatList, Modal } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
+import { useFocusEffect } from '@react-navigation/native';
 
 /* DESIGN IDEA FOR BOOKSCREEN
 - Top Section:
@@ -118,6 +119,14 @@ export default function BookScreen({ route, navigation }) {
         }
     }, [user, bookId]);
 
+    useFocusEffect(
+        React.useCallback(() => {
+            fetchUser();
+            fetchBookDetails();
+            fetchBookReviews();
+        }, [])
+    );
+
     const deleteTargetItem = () => {
         if (deleteTarget === 'book') {
             try {
@@ -133,6 +142,7 @@ export default function BookScreen({ route, navigation }) {
             try {
                 api.delete(`/reviews/${userReview.id}`);
                 setUserReview(null);
+                fetchBookReviews();
             }
             catch (error) {
                 console.log('Delete review error:', error.response?.status, error.response?.data);
@@ -191,7 +201,7 @@ export default function BookScreen({ route, navigation }) {
 
 
     return (
-        <View>
+        <View style={{flex: 1}}>
         <FlatList contentContainerStyle={styles.container}  
             
             ListHeaderComponent={
@@ -254,12 +264,13 @@ export default function BookScreen({ route, navigation }) {
                             {item.user?.username}
                         </Text>
 
-                        <Text style={{fontSize: 16, fontStyle: 'italic'}}>{new Date(item.date).toLocaleDateString()}{"   "}
-                           {new Date(`1970-01-01T${item.time}`).toLocaleTimeString([], {
+                        <Text style={{fontSize: 16, fontStyle: 'italic'}}>{new Date(`${item.date}T${item.time}Z`).toLocaleDateString()}{"   "}
+                                {new Date(`${item.date}T${item.time}Z`).toLocaleTimeString([], {
+                                timeZone: 'America/New_York',
                                 hour: 'numeric',
                                 minute: '2-digit',
                                 hour12: true,
-                            })}
+                            })} 
                         </Text>
                         <Text style={{fontSize: 20, marginTop: 4}}>{item.content}</Text>
                     </View>
@@ -278,6 +289,8 @@ export default function BookScreen({ route, navigation }) {
                                 }} />
                             </View>
                         )}
+
+                        
                     </View>
                     
                     
@@ -287,6 +300,18 @@ export default function BookScreen({ route, navigation }) {
             
 
         />
+
+        <View>
+            {(userReview == null) && (
+
+
+                <View style = {styles.PostReviewButton }>
+                    <Button title="Post Review" onPress={() => navigation.navigate('Post', { bookId })} />
+
+                </View>
+            )}
+                
+        </View>
 
         <Modal
             transparent={true}
@@ -394,8 +419,19 @@ export default function BookScreen({ route, navigation }) {
 
                     </View>
 
-                    <Button title="Login" 
-                                onPress={() => navigation.navigate('Login')} />
+                    <View style={styles.Footer}>
+                        <Button 
+                            title="Update"
+                            onPress={() => {
+                                updateReview(reviewText, starRating);
+                                setEditModalVisible(false);
+                            }}
+                        />
+                        <Button 
+                            title="Cancel"
+                            onPress={() => setEditModalVisible(false)}
+                        />
+                    </View>
 
             
             </View>
@@ -524,6 +560,16 @@ const styles = StyleSheet.create({
 
         padding: 16,
         backgroundColor: 'white',
+    },
+    PostReviewButton: {
+        position: 'absolute', 
+        bottom: 0, 
+        left: 0, 
+        right: 0, 
+        padding: 10, 
+        backgroundColor: 'white',
+        borderTopWidth: 1,
+        borderColor: '#000000',
     },
 });
 

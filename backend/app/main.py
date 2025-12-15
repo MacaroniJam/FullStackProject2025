@@ -8,6 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from jose import JWTError, jwt
 from .auth import oauth2_scheme, SECRET_KEY, ALGORITHM
 import bcrypt
+import datetime
+
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -47,6 +49,24 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     except JWTError:
         raise HTTPException(status_code=403, detail="Token invalid")
     
+@app.post("/refresh")
+def refresh_token(refresh_token: str, session: Session = Depends(get_db)):
+    try:
+        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("sub")
+
+        user = session.query(models.User).filter(models.User.username == username).first()
+        if not user:
+            raise HTTPException(status_code=401, detail="User not found")
+
+        # Create a NEW access token
+        new_access_token = auth.create_token(data={"sub": username})
+
+        return {"access_token": new_access_token, "token_type": "bearer"}
+
+    except JWTError:
+        raise HTTPException(status_code=403, detail="Refresh token invalid")
+    
 
 @app.post("/signup")
 def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
@@ -64,7 +84,8 @@ def login(user: schemas.UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Invalid credentials")
     
     token = auth.create_token({"sub": db_user.username})
-    return {"token": token}
+    refresh_token = auth.create_refresh_token({"sub": db_user.username})
+    return {"access_token": token, "refresh_token": refresh_token, "token_type": "bearer"}
 
 # ONLY FOR TESTING WITH SWAGGER UI
 # -------------------------------------------------
@@ -76,8 +97,8 @@ def token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         raise HTTPException(status_code=400, detail="Invalid credentials")
 
     access_token = auth.create_token({"sub": db_user.username})
-    # Swagger UI expects {"access_token": "...", "token_type": "bearer"}
-    return {"access_token": access_token, "token_type": "bearer"}
+    refresh_token = auth.create_refresh_token({"sub": db_user.username})
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 # -------------------------------------------------
 
 # ---- User endpoints ----
@@ -97,7 +118,17 @@ def update_user(updated_user: schemas.UserCreate, user = Depends(get_current_use
     
     db.commit()
     db.refresh(user)
-    return {"message": "User updated"}
+
+    # Issue new tokens so the client can continue authenticated when username changed
+    access_token = auth.create_token({"sub": user.username})
+    refresh_token = auth.create_refresh_token({"sub": user.username})
+
+    return {
+        "message": "User updated",
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+    }
 
 # Delete current user
 @app.delete("/profile")
@@ -202,9 +233,21 @@ def update_book(book_id: int, updated_book: schemas.BookCreate,
 def delete_book(book_id: int, user = Depends(get_current_user), db: Session = Depends(get_db)):
     db_book = db.query(models.Book).filter(models.Book.id == book_id, 
                                            models.Book.creator_id == user.id).first()
+    
     if not db_book:
         raise HTTPException(status_code=404, detail="Book not found or not owned by user")
     
+    db_book_reviews = db.query(models.Review).filter(models.Review.book_id == book_id).all()
+    for review in db_book_reviews:
+        archived_review = models.ReviewArchive(
+            user_id=review.user_id,
+            book_id=review.book_id,
+            content=review.content,
+            rating=review.rating
+        )
+        db.add(archived_review)
+        db.delete(review)
+
     archived_book = models.BookArchive(
         creator_id=db_book.creator_id,
         title=db_book.title,
@@ -274,6 +317,8 @@ def update_review(review_id: int, updated_review: schemas.ReviewCreate,
     
     db_review.content = updated_review.content
     db_review.rating = updated_review.rating
+    db_review.date = datetime.date.today()
+    db_review.time = datetime.datetime.now(datetime.timezone.utc).time()
     
     db.commit()
     db.refresh(db_review)

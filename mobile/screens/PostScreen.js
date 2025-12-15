@@ -30,9 +30,10 @@ import { Text } from 'react-native-gesture-handler';
     - Star rating input (1-5 stars)
 */
 
-export default function PostScreen({ navigation }) {
+export default function PostScreen({ route, navigation }) {
+    const initialSelected = route?.params?.bookId ?? null;
     const [books, setBooks] = useState([]); // List of books from backend
-    const [selectedBook, setSelectedBook] = useState(null); // Selected book from dropdown
+    const [selectedBook, setSelectedBook] = useState(initialSelected); // Selected book from dropdown
     const [newBookTitle, setNewBookTitle] = useState(''); // New book title input
     const [newBookAuthor, setNewBookAuthor] = useState(''); // New book author input
     const [newBookDate, setNewBookDate] = useState(''); // New book publication date input
@@ -70,6 +71,13 @@ export default function PostScreen({ navigation }) {
         fetchUserReviews();
     }, []);
 
+    // If we arrived with a bookId param, ensure it's selected once books load
+    React.useEffect(() => {
+        if (route?.params?.bookId) {
+            setSelectedBook(route.params.bookId);
+        }
+    }, [route?.params?.bookId, books.length]);
+
     // Post Book function for new book
     const postBook = async (title, author, date, description) => {
         try {
@@ -106,7 +114,7 @@ export default function PostScreen({ navigation }) {
     };
 
     const CheckIfUserReviewedBook = (bookId) => {
-        return userReviews.some(review => review.book_id === bookId);
+        return userReviews.some(review => review?.book?.id  === bookId);
     }
 
     // Post Review function
@@ -143,7 +151,7 @@ export default function PostScreen({ navigation }) {
                 rating,
             });
             Alert.alert('Review posted successfully');
-            navigation.navigate('Home');
+            navigation.replace('Home');
             return res.data;
         } catch (error) {
             Alert.alert('Failed to post review');
@@ -290,7 +298,9 @@ const styles = StyleSheet.create({
         left: 0, 
         right: 0, 
         padding: 10, 
-        backgroundColor: 'white', 
+        backgroundColor: 'white',
+        borderTopWidth: 1,
+        borderColor: '#000000',
     },
 
     Picker: {

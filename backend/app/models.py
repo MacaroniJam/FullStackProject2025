@@ -31,8 +31,8 @@ class Review(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id  = Column(Integer, ForeignKey('users.id'))
     book_id = Column(Integer, ForeignKey('books.id'))
-    date = Column(Date, default = datetime.date.today)
-    time = Column(Time, default = datetime.datetime.now().strftime("%I:%M:%S %p"))
+    date = Column(Date, default=datetime.date.today)
+    time = Column(Time, default=lambda: datetime.datetime.now(datetime.timezone.utc).time())
     content = Column(String, nullable=False)
     rating = Column(Integer, nullable=False)
     user = relationship("User")
@@ -41,8 +41,8 @@ class Review(Base):
 class BookArchive(Base):
     __tablename__ = "book_archives"
     id = Column(Integer, primary_key=True, index=True)
-    archived_date = Column(Date, default = datetime.date.today)
-    archived_time = Column(Time, default = datetime.datetime.now().time)
+    archived_date = Column(Date, default=datetime.date.today)
+    archived_time = Column(Time, default=lambda: datetime.datetime.now(datetime.timezone.utc).time())
     creator_id = Column(Integer)
     title = Column(String, nullable=False)
     author = Column(String, nullable=False)
@@ -56,8 +56,8 @@ class ReviewArchive(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id  = Column(Integer)
     book_id = Column(Integer)
-    date = Column(Date, default = datetime.date.today)
-    time = Column(Time, default = datetime.datetime.now().time)
+    date = Column(Date, default=datetime.date.today)
+    time = Column(Time, default=lambda: datetime.datetime.now(datetime.timezone.utc).time())
     content = Column(String, nullable=False)
     rating = Column(Integer, nullable=False)
 
